@@ -41,3 +41,34 @@ Hardware Used: NVIDIA Jetson Nano
 OS: Ubuntu 20.04 (JetPack 4.6+)
 
 Model Format: .keras, .tflite, .onnx
+
+
+
+preprocess.py
+
+Create memory-mapped dataset files (X_sequences_memmap.dat, y_labels_memmap.dat)
+from a large CSV (LONG or WIDE format). Designed to run in VS Code / Colab.
+
+Usage examples:
+  python preprocess.py --csv /path/combined_dataset.csv --outdir /path/output --seq_len 50 --n_features 13
+  python preprocess.py --csv /path/combined_dataset.csv --mode wide --seq_len 50 --n_features 13
+
+Behavior:
+- WIDE format: each row contains seq_len * n_features flattened features (optionally a y_true column).
+- LONG format: data has rows per time-step per unit. Requires an id column and a time column
+  (auto-detected); windows of length seq_len are emitted per id once enough rows are available.
+- Two-pass approach: first pass counts how many windows will be produced, second pass writes
+  memmaps to disk to avoid holding everything in RAM.
+
+Outputs (in --outdir):
+ - X_sequences_memmap.dat   (float32) shape=(N_windows, seq_len, n_features)
+ - y_labels_memmap.dat      (float32) shape=(N_windows,)
+ - metadata.json            (info about seq_len, n_features, N_windows, columns used)
+
+Notes:
+- The script is defensive: it tries to auto-detect ID/time columns for LONG format and
+  selects numeric feature columns. Non-numeric columns (timestamps, strings) are ignored
+  from feature channels.
+- For LONG format if id column is missing we create synthetic ids per chunk (not recommended).
+
+
